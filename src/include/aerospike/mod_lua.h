@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2008-2014 Aerospike, Inc.
  *
  * Portions may be licensed to Aerospike, Inc. under one or more contributor
@@ -22,11 +22,3 @@
  * Lua Module
  */
 extern as_module mod_lua;
-
-
-/**
- * Locks
- */
-int mod_lua_rdlock(as_module * m);
-int mod_lua_wrlock(as_module * m);
-int mod_lua_unlock(as_module * m);

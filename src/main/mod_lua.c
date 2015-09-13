@@ -108,7 +108,7 @@ struct context_s {
  * VARIABLES
  ******************************************************************************/
 
-static pthread_rwlock_t lock;
+static const pthread_rwlock_t mod_lua_lock;
 
 static cf_rchash * centry_hash = NULL;
 
@@ -335,13 +335,14 @@ static int cache_reduce_delete_fn(void *key, uint32_t keylen, void *object, void
  * @sychronization: Caller should have a write lock
  */
 static int update(as_module * m, as_module_event * e) {
-
+	
 	context * ctx = (context *) (m ? m->source : NULL);
 
 	if ( ctx == NULL ) return 1;
 
 	switch ( e->type ) {
 		case AS_MODULE_EVENT_CONFIGURE: {
+			as_log_trace("configuring lua");
 			mod_lua_config * config     = (mod_lua_config *) e->data.config;
 
 			ctx->config.server_mode     = config->server_mode;
@@ -356,7 +357,7 @@ static int update(as_module * m, as_module_event * e) {
 			}
 
 			if ( ctx->lock == NULL ) {
-				ctx->lock = &lock;
+				ctx->lock = &mod_lua_lock;
 #ifdef __linux__
 				pthread_rwlockattr_t rwattr;
 				if (0 != pthread_rwlockattr_init(&rwattr)) {
@@ -1292,31 +1293,6 @@ static int apply_stream(as_module * m, as_udf_context *udf_ctx, const char * fil
 }
 
 
-int mod_lua_rdlock(as_module * m) {
-	context * c = (context *) ( m ? m->source : NULL );
-	if ( c && c->lock ) {
-		return pthread_rwlock_rdlock(c->lock);
-	}
-	return 1;
-}
-
-int mod_lua_wrlock(as_module * m) {
-	context * c = (context *) ( m ? m->source : NULL );
-	if ( c && c->lock ) {
-		return pthread_rwlock_wrlock(c->lock);
-	}
-	return 1;
-}
-
-int mod_lua_unlock(as_module * m) {
-	context * c = (context *) ( m ? m->source : NULL );
-	if ( c && c->lock ) {
-		return pthread_rwlock_unlock(c->lock);
-	}
-	return 1;
-}
-
-
 /**
  * Module Hooks
  */
@@ -1333,5 +1309,6 @@ static const as_module_hooks mod_lua_hooks = {
  */
 as_module mod_lua = {
 	.source         = &mod_lua_source,
-	.hooks          = &mod_lua_hooks
+	.hooks          = &mod_lua_hooks,
+	.lock           = &mod_lua_lock,
 };
